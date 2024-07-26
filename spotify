@@ -1,0 +1,216 @@
+# import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+import plotly.express as px
+import scipy.stats as stats
+from datetime import datetime
+import statsmodels.api as sm
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.model_selection import train_test_split
+from sklearn.decomposition import PCA
+from sklearn.preprocessing import StandardScaler
+from sklearn.cluster import KMeans
+from sklearn.metrics import silhouette_score
+
+#1 Initial data inspection and data cleaning:
+# Check whether the data has duplicates, missing values, irrelevant (erroneous entries) values, or outliers.
+df=pd.read_csv(r'C:\Users\bansasq\PythonProjects\AIMl\MachineLearning\P4SpotifyandHR\Spotify\rolling_stones_spotify.csv')
+duplicates = df.duplicated()
+# # print(f"Number of duplicate rows: {duplicates.sum()}")
+missing_values = df.isnull().sum()
+# # print("Missing values per column:\n", missing_values)
+
+#2 Depending on your findings, clean the data for further processing, Converting Obj Datatypes to string
+df.columns = df.columns.str.strip()
+df=df.drop(['uri'], axis=1)
+df['name'] = df['name'].astype("string")
+df['album'] = df['album'].astype("string")
+df['release_date'] = pd.to_datetime(df['release_date'], errors='coerce')
+df['id'] = df['id'].astype("string")
+
+#3 Perform Exploratory Data Analysis and Feature Engineering:
+#3.1 Use appropriate visualizations to find out which two albums should be recommended to anyone based on the number of popular songs in an album.
+# print(df.info())
+# print(df.describe())
+# Draw a box plot to identify popularity threshold in all quadrents
+# fig = px.box(df,  y="popularity")
+# fig.show()
+# # # Based on above box plot Mean threshold is 27
+popularity_threshold = 27  
+# # Add a column to indicate if a song is popular, If popularity is greater than threshold
+df['is_popular'] = df['popularity'] > popularity_threshold
+# # # Create album_popularity based upon popular songs in it
+# album_popularity = df.groupby('album')['is_popular'].sum().reset_index()
+# album_popularity = album_popularity.sort_values(by='is_popular', ascending=False)
+# album_popularity.columns = ['album', 'popular_songs_count']
+# top_2_albums = album_popularity.head(2)
+# print("Top 2 recommended albums:\n", top_2_albums)
+# # Bar plot of the number of popular songs by album
+# plt.figure(figsize=(12, 8))
+# sns.barplot(x='popular_songs_count', y='album', data=album_popularity.head(20), palette='viridis')
+# plt.title('Top 20 Albums by Number of Popular Songs')
+# plt.xlabel('Number of Popular Songs')
+# plt.ylabel('Album')
+# plt.show()
+
+#3.2 Perform exploratory data analysis to dive deeper into different features of songs and identify the pattern.
+# Histogram for exploratory data analysis to dive deeper into different features of songs
+# df.hist(bins=20, figsize=(14, 10), layout=(5, 3))
+# plt.tight_layout()
+# plt.show()
+# X = df[['danceability', 'energy', 'instrumentalness', 'liveness', 'loudness', 'speechiness', 'tempo', 'valence', 'duration_ms']]
+# y = df['is_popular']
+# # Train a random forest classifier
+# clf = RandomForestClassifier(n_estimators=100, random_state=42)
+# clf.fit(X, y)
+# # Get feature importances
+# importances = clf.feature_importances_
+# feature_names = X.columns
+# feature_importances = pd.DataFrame({'feature': feature_names, 'importance': importances})
+# # Sort and plot feature importances for popularity of the song
+# feature_importances = feature_importances.sort_values(by='importance', ascending=False)
+# plt.figure(figsize=(12, 6))
+# sns.barplot(x='importance', y='feature', data=feature_importances, palette='viridis')
+# plt.title('Feature Importance for Song Popularity')
+# plt.show()
+# # Compare popular vs. non-popular songs on basis of features = ['danceability','energy', 'instrumentalness', 'liveness', 'loudness', 'speechiness', 'tempo', 'valence', 'duration_ms']
+# for feature in features:
+#     plt.figure(figsize=(12, 6))
+#     sns.boxplot(x='is_popular', y=feature, data=df)
+#     plt.title(f'{feature.capitalize()}: Popular vs Non-Popular Songs')
+#     plt.show()
+    
+# #3.3 Discover how a song's popularity relates to various factors and how this has changed over time
+# # Extract year from the release date
+# df['year'] = df['release_date'].dt.year
+# # Drop rows with missing release dates
+# df = df.dropna(subset=['year'])
+# # Average popularity by year
+# popularity_over_time = df.groupby('year')['popularity'].mean().reset_index()
+# # Plot popularity over time
+# plt.figure(figsize=(12, 6))
+# sns.lineplot(x='year', y='popularity', data=popularity_over_time)
+# plt.title('Average Song Popularity Over Time')
+# plt.xlabel('Year')
+# plt.ylabel('Average Popularity')
+# plt.show() 
+# features = ['danceability', 'energy', 'instrumentalness', 'liveness', 'loudness', 'speechiness', 'tempo', 'valence', 'duration_ms']
+# sns.pairplot(df, x_vars=features, y_vars='popularity', kind='reg', height=5, aspect=0.8)
+# plt.show()
+# # Function to calculate feature importances over different periods
+# def calculate_feature_importances(df, start_year, end_year):
+#     # Filter data for the given period
+#     df_period = df[(df['year'] >= start_year) & (df['year'] <= end_year)]
+#     # Prepare data
+#     X = df_period[features]
+#     y = df_period['popularity']
+#     # Train a random forest regressor
+#     reg = RandomForestRegressor(n_estimators=100, random_state=42)
+#     reg.fit(X, y)
+#     # Get feature importances
+#     importances = reg.feature_importances_
+#     feature_importances = pd.DataFrame({'feature': features, 'importance': importances})
+    
+#     return feature_importances
+# # Calculate feature importances for different periods
+# feature_importances_2000s = calculate_feature_importances(df, 2000, 2009)
+# feature_importances_2010s = calculate_feature_importances(df, 2010, 2019)
+# # Plot feature importances for different periods
+# plt.figure(figsize=(14, 6))
+# plt.subplot(1, 2, 1)
+# sns.barplot(x='importance', y='feature', data=feature_importances_2000s.sort_values(by='importance', ascending=False), palette='viridis')
+# plt.title('Feature Importance (2000-2009)')
+# plt.xlabel('Importance')
+# plt.ylabel('Feature')
+# plt.subplot(1, 2, 2)
+# sns.barplot(x='importance', y='feature', data=feature_importances_2010s.sort_values(by='importance', ascending=False), palette='viridis')
+# plt.title('Feature Importance (2010-2019)')
+# plt.xlabel('Importance')
+# plt.ylabel('Feature')
+# plt.tight_layout()
+# plt.show()
+
+# 3.4 Comment on the importance of dimensionality reduction techniques, share your ideas and explain your observations.
+# Select relevant features for dimensionality reduction
+features = ['danceability', 'energy', 'instrumentalness', 'liveness', 'loudness', 'speechiness', 'tempo', 'valence', 'duration_ms', 'popularity']
+X = df[features]
+# Standardize the features
+scaler = StandardScaler()
+X_scaled = scaler.fit_transform(X)
+# # Apply PCA
+# pca = PCA(n_components=2)
+# X_pca = pca.fit_transform(X_scaled)
+# # Create a DataFrame with PCA results
+# pca_df = pd.DataFrame(data=X_pca, columns=['PC1', 'PC2'])
+# pca_df['popularity'] = df['popularity']
+# # Visualize PCA results
+# plt.figure(figsize=(12, 6))
+# sns.scatterplot(x='PC1', y='PC2', hue='popularity', palette='viridis', data=pca_df)
+# plt.title('PCA Results')
+# plt.xlabel('Principal Component 1')
+# plt.ylabel('Principal Component 2')
+# # plt.colorbar(label='Popularity')
+# plt.show()
+# # Explained variance ratio
+# print(f"Explained variance by principal components: {pca.explained_variance_ratio_}")
+
+# 4 Perform Cluster Analysis:Elbow Method
+# 4.1 Identify the right number of clusters
+wcss = []
+for i in range(1, 11):
+    kmeans = KMeans(n_clusters=i, random_state=42)
+    kmeans.fit(X_scaled)
+    wcss.append(kmeans.inertia_)
+# Plot the Elbow Method
+plt.figure(figsize=(12, 6))
+plt.plot(range(1, 11), wcss, marker='o')
+plt.title('Elbow Method')
+plt.xlabel('Number of Clusters')
+plt.ylabel('WCSS')
+plt.show()
+# Silhouette Score
+silhouette_scores = []
+for n_clusters in range(2, 11):
+    kmeans = KMeans(n_clusters=n_clusters, random_state=42)
+    cluster_labels = kmeans.fit_predict(X_scaled)
+    silhouette_avg = silhouette_score(X_scaled, cluster_labels)
+    silhouette_scores.append(silhouette_avg)
+# Plot Silhouette Scores
+plt.figure(figsize=(12, 6))
+plt.plot(range(2, 11), silhouette_scores, marker='o')
+plt.title('Silhouette Scores for Various Clusters')
+plt.xlabel('Number of Clusters')
+plt.ylabel('Silhouette Score')
+plt.show()
+# Determine optimal number of clusters
+optimal_clusters = silhouette_scores.index(max(silhouette_scores)) + 2
+print(f"Optimal number of clusters: {optimal_clusters}")
+
+# #4.2 Use appropriate clustering algorithm
+# Apply KMeans with the optimal number of clusters
+kmeans = KMeans(n_clusters=optimal_clusters, random_state=42)
+df['cluster'] = kmeans.fit_predict(X_scaled)
+# Get the cluster centers
+cluster_centers = scaler.inverse_transform(kmeans.cluster_centers_)
+cluster_centers_df = pd.DataFrame(cluster_centers, columns=features)
+cluster_centers_df['cluster'] = range(optimal_clusters)
+print(kmeans.cluster_centers_)
+print(cluster_centers_df.head(10))
+
+#4.3 Define each cluster based on the features
+# for cluster in range(optimal_clusters):
+#     print(f"Cluster {cluster}:")
+#     cluster_features = cluster_centers_df.loc[cluster_centers_df['cluster'] == cluster, features].to_dict(orient='records')[0]
+#     for feature, value in cluster_features.items():
+#         print(f"  {feature}: {value:.2f}")
+#     print("\n")
+# # Visualize the clusters for danceability
+# plt.figure(figsize=(12, 6))
+# sns.scatterplot(x='danceability', y='popularity', hue='cluster', palette='viridis', data=df)
+# plt.title('Clusters Visualization')
+# plt.xlabel('Danceability')
+# plt.ylabel('Popularity')
+# plt.show()
+
